@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 붙여넣기 캔버스</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+        }
+
+        .canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0%;
+            left: 0%;
+            transform-origin: center center;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: opacity 0.3s, visibility 0.3s;
+            min-width: 280px;
+        }
+
+        .controls.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        .info {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 6px;
+            color: #1565c0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .zoom-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: monospace;
+            z-index: 1000;
+        }
+
+        .image-info {
+            margin-top: 12px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #666;
+            display: none;
+        }
+
+        .image-info.active {
+            display: block;
+        }
+
+        .image-info strong {
+            color: #333;
+        }
+
+        .placeholder-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #999;
+            font-size: 14px;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .placeholder-text.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas-container">
+        <canvas id="canvas"></canvas>
+        <div class="placeholder-text" id="placeholderText">여기에 이미지를 붙여 넣어주세요</div>
+    </div>
+
+    <div class="controls" id="controls">
+        <div class="control-group">
+            <label>배경색 선택:</label>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="bgColor" value="white" checked>
+                    <span>흰색</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="bgColor" value="black">
+                    <span>검은색</span>
+                </label>
+            </div>
+        </div>
+        <div class="info">
+            <strong>단축키:</strong><br>
+            / : UI 토글<br>
+            Cmd/Ctrl + V : 이미지 붙여넣기<br>
+            마우스 휠 : 줌 인/아웃<br>
+            Cmd/Ctrl + Z : 실행 취소<br>
+            Cmd/Ctrl + Shift + Z : 다시 실행
+        </div>
+        <div class="image-info" id="imageInfo">
+            <strong>이미지 정보:</strong> <span id="dimensions"></span>
+        </div>
+    </div>
+
+    <div class="zoom-info" id="zoomInfo">Zoom: 100%</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const imageInfo = document.getElementById('imageInfo');
+        const dimensionsSpan = document.getElementById('dimensions');
+        const bgColorRadios = document.querySelectorAll('input[name="bgColor"]');
+        const controls = document.getElementById('controls');
+        const zoomInfo = document.getElementById('zoomInfo');
+        const placeholderText = document.getElementById('placeholderText');
+
+        let currentImage = null;
+        let scale = 1;
+        const MIN_SCALE = 0.1;
+        const MAX_SCALE = 10;
+        const SCALE_STEP = 0.1;
+
+        // Undo/Redo 히스토리
+        let history = [];
+        let historyStep = -1;
+        const MAX_HISTORY = 50;
+
+        // 캔버스 크기를 뷰포트에 맞게 설정
+        function resizeCanvas() {
+            const container = document.querySelector('.canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            redrawCanvas();
+        }
+
+        // 캔버스 다시 그리기
+        function redrawCanvas() {
+            // 변환 초기화
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // 캔버스를 투명하게 클리어
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (currentImage) {
+                // 캔버스 중앙점을 기준으로 변환 설정
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+
+                // 중앙점으로 이동 후 스케일 적용
+                ctx.translate(centerX, centerY);
+                ctx.scale(scale, scale);
+
+                // 이미지를 중앙에 배치 (스케일이 적용된 좌표계에서)
+                const x = -currentImage.width / 2;
+                const y = -currentImage.height / 2;
+
+                ctx.drawImage(currentImage, x, y, currentImage.width, currentImage.height);
+            }
+        }
+
+        // 줌 레벨 업데이트
+        function updateZoom(newScale) {
+            scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
+            zoomInfo.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+            redrawCanvas();
+        }
+
+        // 히스토리에 상태 저장
+        function saveToHistory() {
+            // 현재 단계 이후의 히스토리 삭제
+            history = history.slice(0, historyStep + 1);
+
+            // 현재 상태 저장
+            const state = {
+                image: currentImage,
+                scale: scale
+            };
+
+            history.push(state);
+
+            // 히스토리 크기 제한
+            if (history.length > MAX_HISTORY) {
+                history.shift();
+            } else {
+                historyStep++;
+            }
+        }
+
+        // Undo 기능
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                const state = history[historyStep];
+                currentImage = state.image;
+                scale = state.scale;
+
+                updateUI();
+                redrawCanvas();
+            }
+        }
+
+        // Redo 기능
+        function redo() {
+            if (historyStep < history.length - 1) {
+                historyStep++;
+                const state = history[historyStep];
+                currentImage = state.image;
+                scale = state.scale;
+
+                updateUI();
+                redrawCanvas();
+            }
+        }
+
+        // UI 업데이트
+        function updateUI() {
+            if (currentImage) {
+                placeholderText.classList.add('hidden');
+                dimensionsSpan.textContent = `${currentImage.naturalWidth} × ${currentImage.naturalHeight} px`;
+                imageInfo.classList.add('active');
+            } else {
+                placeholderText.classList.remove('hidden');
+                imageInfo.classList.remove('active');
+            }
+            zoomInfo.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+        }
+
+        // 배경색 변경 이벤트 (body background 변경)
+        bgColorRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                document.body.style.background = e.target.value;
+            });
+        });
+
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            // UI 토글 (/ 키)
+            if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+                e.preventDefault();
+                controls.classList.toggle('hidden');
+            }
+
+            // Undo (Cmd/Ctrl + Z)
+            if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+            }
+
+            // Redo (Cmd/Ctrl + Shift + Z)
+            if (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+                e.preventDefault();
+                redo();
+            }
+        });
+
+        // 마우스 휠 줌
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            const delta = e.deltaY > 0 ? -SCALE_STEP : SCALE_STEP;
+            updateZoom(scale + delta);
+        }, { passive: false });
+
+        // 붙여넣기 이벤트 리스너
+        document.addEventListener('paste', (e) => {
+            e.preventDefault();
+
+            const items = e.clipboardData.items;
+
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    const img = new Image();
+
+                    img.onload = function() {
+                        currentImage = img;
+                        scale = 1; // 줌 리셋
+
+                        // 히스토리에 저장
+                        saveToHistory();
+
+                        // UI 업데이트
+                        updateUI();
+
+                        // 캔버스 다시 그리기
+                        redrawCanvas();
+
+                        // URL 정리
+                        URL.revokeObjectURL(img.src);
+                    };
+
+                    img.onerror = function() {
+                        alert('이미지를 불러오는데 실패했습니다.');
+                        URL.revokeObjectURL(img.src);
+                    };
+
+                    img.src = URL.createObjectURL(blob);
+                    break;
+                }
+            }
+        });
+
+        // 초기 설정 및 리사이즈 이벤트
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>

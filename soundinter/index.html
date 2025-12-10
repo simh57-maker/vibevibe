@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Interactive Media</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="media-container">
+        <div id="media-wrapper"></div>
+        <div id="color-filter"></div>
+    </div>
+
+    <div id="controls-panel" class="controls-panel">
+        <div class="control-group">
+            <h3>미디어 업로드</h3>
+            <input type="file" id="media-upload" accept="image/*,video/*">
+            <button id="clear-media">미디어 제거</button>
+        </div>
+
+        <div class="control-group">
+            <h3>마이크 설정</h3>
+            <button id="mic-toggle">마이크 시작</button>
+            <div class="info">
+                <div><strong>현재 볼륨: <span id="volume-value">0</span>%</strong></div>
+                <div class="debug-info">
+                    <small>RMS: <span id="rms-value">0</span></small> |
+                    <small>Peak: <span id="peak-value">0</span></small> |
+                    <small>Freq: <span id="freq-value">0</span></small>
+                </div>
+            </div>
+            <div class="audio-level-container">
+                <div class="audio-level-bar" id="audio-level-bar"></div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>민감도 설정</h3>
+            <label for="sensitivity">민감도 (0-10): <span id="sensitivity-value">5</span></label>
+            <input type="range" id="sensitivity" min="0" max="10" value="5" step="1">
+        </div>
+
+        <div class="control-group">
+            <h3>색상 필터</h3>
+            <label for="filter-color">필터 색상:</label>
+            <input type="color" id="filter-color" value="#ffffff">
+            <label for="filter-opacity">필터 강도:</label>
+            <input type="range" id="filter-opacity" min="0" max="100" value="0" step="1">
+            <span id="opacity-value">0%</span>
+        </div>
+
+        <div class="help-text">
+            <p>'/' 키를 눌러 UI를 숨기거나 표시할 수 있습니다</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

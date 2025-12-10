@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Video Converter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="video-container">
+        <video id="originalVideo" style="display: none;"></video>
+        <canvas id="asciiCanvas"></canvas>
+    </div>
+
+    <div class="ui-overlay" id="uiOverlay">
+        <div class="upload-section">
+            <input type="file" id="videoUpload" accept="video/*">
+            <label for="videoUpload" class="upload-btn">Upload Video</label>
+        </div>
+
+        <div class="controls-wrapper">
+            <div class="controls-panel">
+                <h2>ASCII Settings</h2>
+
+                <div class="size-control">
+                    <label>Text Size: <span id="textSizeValue">10</span>px</label>
+                    <input type="range" id="textSize" min="4" max="30" value="10" step="1">
+                </div>
+
+                <div class="brightness-control">
+                    <h3>Video Adjustments</h3>
+                    <div class="adjustment-item">
+                        <label>Brightness: <span id="brightnessValue">0</span></label>
+                        <input type="range" id="brightness" min="-100" max="100" value="0" step="1">
+                    </div>
+                    <div class="adjustment-item">
+                        <label>Contrast: <span id="contrastValue">0</span></label>
+                        <input type="range" id="contrast" min="-100" max="100" value="0" step="1">
+                    </div>
+                </div>
+
+                <div class="ascii-levels">
+                    <div class="level-control">
+                        <input type="checkbox" id="level1" checked>
+                        <label for="level1">Level 1 (Darkest)</label>
+                        <input type="text" id="char1" value="!" maxlength="5" class="char-input">
+                    </div>
+                    <div class="level-control">
+                        <input type="checkbox" id="level2" checked>
+                        <label for="level2">Level 2</label>
+                        <input type="text" id="char2" value="@" maxlength="5" class="char-input">
+                    </div>
+                    <div class="level-control">
+                        <input type="checkbox" id="level3" checked>
+                        <label for="level3">Level 3</label>
+                        <input type="text" id="char3" value="#" maxlength="5" class="char-input">
+                    </div>
+                    <div class="level-control">
+                        <input type="checkbox" id="level4" checked>
+                        <label for="level4">Level 4 (Brightest)</label>
+                        <input type="text" id="char4" value="$" maxlength="5" class="char-input">
+                    </div>
+                </div>
+
+                <h2>Color Settings</h2>
+
+                <div class="color-section">
+                    <h3>Text Color (HSB)</h3>
+                    <div class="hsb-control">
+                        <label>H: <span id="textHValue">0</span></label>
+                        <input type="range" id="textH" min="0" max="360" value="0">
+                    </div>
+                    <div class="hsb-control">
+                        <label>S: <span id="textSValue">0</span>%</label>
+                        <input type="range" id="textS" min="0" max="100" value="0">
+                    </div>
+                    <div class="hsb-control">
+                        <label>B: <span id="textBValue">100</span>%</label>
+                        <input type="range" id="textB" min="0" max="100" value="100">
+                    </div>
+                    <div class="color-preview" id="textColorPreview"></div>
+                </div>
+
+                <div class="color-section">
+                    <h3>Background Color (HSB)</h3>
+                    <div class="hsb-control">
+                        <label>H: <span id="bgHValue">0</span></label>
+                        <input type="range" id="bgH" min="0" max="360" value="0">
+                    </div>
+                    <div class="hsb-control">
+                        <label>S: <span id="bgSValue">0</span>%</label>
+                        <input type="range" id="bgS" min="0" max="100" value="0">
+                    </div>
+                    <div class="hsb-control">
+                        <label>B: <span id="bgBValue">0</span>%</label>
+                        <input type="range" id="bgB" min="0" max="100" value="0">
+                    </div>
+                    <div class="color-preview" id="bgColorPreview"></div>
+                </div>
+
+                <div class="export-section">
+                    <button id="exportBtn" class="export-btn">Export to MP4</button>
+                    <div id="exportProgress" class="export-progress"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="keyboard-hint">Press / to toggle UI</div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Test Video</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        button {
+            background: #00ff00;
+            color: black;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generate Test Video for ASCII Converter</h1>
+    <p>This page will create a simple test video (3 seconds) with animated text.</p>
+    <button onclick="generateVideo()">Generate Test Video</button>
+    <div id="status"></div>
+    <canvas id="canvas" width="640" height="480"></canvas>
+
+    <script>
+        async function generateVideo() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const status = document.getElementById('status');
+
+            status.textContent = 'Generating video...';
+
+            // Create a simple animation
+            const fps = 30;
+            const duration = 3; // seconds
+            const totalFrames = fps * duration;
+
+            const stream = canvas.captureStream(fps);
+            const mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm',
+                videoBitsPerSecond: 2500000
+            });
+
+            const chunks = [];
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunks.push(e.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'test_video.webm';
+                a.click();
+                URL.revokeObjectURL(url);
+                status.textContent = 'Video downloaded! Now upload it to the ASCII converter.';
+            };
+
+            mediaRecorder.start();
+
+            let frame = 0;
+            const interval = setInterval(() => {
+                // Clear canvas
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw animated content
+                const progress = frame / totalFrames;
+
+                // Moving circle
+                const x = canvas.width * progress;
+                const y = canvas.height / 2 + Math.sin(progress * Math.PI * 4) * 100;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(x, y, 50, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Rotating rectangle
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(progress * Math.PI * 4);
+                ctx.fillStyle = '#888888';
+                ctx.fillRect(-40, -40, 80, 80);
+                ctx.restore();
+
+                // Text
+                ctx.fillStyle = '#cccccc';
+                ctx.font = '48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('ASCII TEST', canvas.width / 2, 100);
+
+                frame++;
+                if (frame >= totalFrames) {
+                    clearInterval(interval);
+                    mediaRecorder.stop();
+                }
+            }, 1000 / fps);
+        }
+    </script>
+</body>
+</html>
