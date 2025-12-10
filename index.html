@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #101010 0%, #272726 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -29,16 +29,16 @@
         h1 {
             color: white;
             text-align: center;
-            font-size: 3.5rem;
+            font-size: 3rem;
             margin-bottom: 1rem;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
             letter-spacing: 2px;
         }
 
         h2 {
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255, 255, 255, 0.5);
             text-align: center;
-            font-size: 1.5rem;
+            font-size: 1rem;
             margin-bottom: 3rem;
             font-weight: 300;
         }
@@ -46,44 +46,39 @@
         .projects-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
+            gap: 1rem;
         }
 
         .project-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             padding: 2rem;
             transition: all 0.3s ease;
             cursor: pointer;
             text-decoration: none;
             display: block;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            box-shadow: 0 8px 32px 0 rgba(39, 39, 39, 0.37);
         }
 
         .project-card:hover {
             transform: translateY(-10px);
             background: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
+            box-shadow: 0 12px 40px 0 rgba(66, 66, 66, 0.5);
         }
 
         .project-title {
             color: white;
-            font-size: 1.5rem;
+            font-size: 1rem;
             font-weight: 600;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.2rem;
         }
 
-        .project-title::before {
-            content: '→';
-            font-size: 1.8rem;
-            transition: transform 0.3s ease;
-        }
 
         .project-card:hover .project-title::before {
             transform: translateX(5px);
@@ -91,7 +86,7 @@
 
         .project-description {
             color: rgba(255, 255, 255, 0.8);
-            font-size: 1rem;
+            font-size: 0.9rem;
             line-height: 1.6;
         }
 
@@ -108,8 +103,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>vibevibe</h1>
-        <h2>Projects</h2>
+        <h1>바이브코딩 연습노트</h1>
+        <h2>눌러보세요</h2>
 
         <div class="projects-grid">
             <a href="asciivideo/index.html" class="project-card">

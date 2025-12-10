@@ -1,6 +1,6 @@
-# vibevibe
+# 바이브코딩 연습노트
 
-## Projects
+## 눌러보세요
 
 - [ASCII Video](asciivideo/index.html) - ASCII 비디오 프로젝트
 - [Sound Interaction](soundinter/index.html) - 사운드 인터랙션 프로젝트(사운드 권한을 허용하고 사용하세요)
