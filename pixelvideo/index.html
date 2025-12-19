@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video-to-Text-Graphic Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 30, 30, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            max-width: 300px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        #controls h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #00ff88;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 5px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #444;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .control-group input[type="color"] {
+            width: 100%;
+            height: 35px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .control-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background: #2a2a2a;
+            color: #00ff88;
+            border: 1px solid #444;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .control-group input[type="text"]:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .value-display {
+            display: inline-block;
+            float: right;
+            color: #00ff88;
+            font-weight: bold;
+        }
+
+        #fileInput {
+            width: 100%;
+            padding: 10px;
+            background: #00ff88;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+        }
+
+        #fileInput:hover {
+            background: #00dd77;
+        }
+
+        .status {
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .divider {
+            height: 1px;
+            background: #444;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h2>ASCII Video</h2>
+
+        <input type="file" id="fileInput" accept="video/*">
+
+        <div class="control-group">
+            <label>Grid Size <span class="value-display" id="gridValue">10</span></label>
+            <input type="range" id="gridSize" min="4" max="30" value="10" step="1">
+        </div>
+
+        <div class="control-group">
+            <label>Brightness Sensitivity <span class="value-display" id="sensitivityValue">3</span></label>
+            <input type="range" id="sensitivity" min="3" max="6" value="3" step="1">
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="control-group">
+            <label>Scale X <span class="value-display" id="scaleXValue">1.0</span></label>
+            <input type="range" id="scaleX" min="0.3" max="3.0" value="1.0" step="0.1">
+        </div>
+
+        <div class="control-group">
+            <label>Scale Y <span class="value-display" id="scaleYValue">1.0</span></label>
+            <input type="range" id="scaleY" min="0.3" max="3.0" value="1.0" step="0.1">
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="control-group">
+            <label>Symbol Color</label>
+            <input type="color" id="symbolColor" value="#00ff88">
+        </div>
+
+        <div class="control-group">
+            <label>Background Color</label>
+            <input type="color" id="bgColor" value="#000000">
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="control-group">
+            <label>Custom Symbol</label>
+            <input type="text" id="customSymbol" maxlength="1" value="$" placeholder="Enter a character">
+        </div>
+
+        <div class="status" id="status">Upload a video to begin</div>
+    </div>
+
+    <script>
+        // Video and control variables
+        let video;
+        let videoLoaded = false;
+
+        // UI Control values
+        let gridSize = 10;
+        let brightnessSensitivity = 3;
+        let scaleXValue = 1.0;
+        let scaleYValue = 1.0;
+        let symbolColor;
+        let backgroundColor;
+        let customSymbol = '$';
+
+        // Store drawn symbols to check for overlaps
+        let drawnSymbols = [];
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+
+            // Create hidden video element
+            video = createVideo('', videoReady);
+            video.hide();
+            video.loop();
+            video.volume(0);
+
+            // Initialize colors
+            symbolColor = color(0, 255, 136);
+            backgroundColor = color(0, 0, 0);
+
+            // Set up file input
+            const fileInput = document.getElementById('fileInput');
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Set up sliders
+            setupControls();
+
+            // Text settings
+            textAlign(CENTER, CENTER);
+            textFont('Courier New');
+        }
+
+        function draw() {
+            background(backgroundColor);
+
+            if (!videoLoaded || !video) {
+                drawWelcomeScreen();
+                return;
+            }
+
+            // Clear previous frame's symbol data
+            drawnSymbols = [];
+
+            // Load pixel data from video
+            video.loadPixels();
+
+            // Calculate font size based on grid size
+            const fontSize = gridSize * 1.2;
+            textSize(fontSize);
+            fill(symbolColor);
+
+            // Calculate offset to center the video
+            const videoAspect = video.width / video.height;
+            const canvasAspect = width / height;
+
+            let displayWidth, displayHeight, offsetX, offsetY;
+
+            if (videoAspect > canvasAspect) {
+                displayWidth = width;
+                displayHeight = width / videoAspect;
+                offsetX = 0;
+                offsetY = (height - displayHeight) / 2;
+            } else {
+                displayHeight = height;
+                displayWidth = height * videoAspect;
+                offsetX = (width - displayWidth) / 2;
+                offsetY = 0;
+            }
+
+            // Scan video in grid pattern
+            for (let y = 0; y < video.height; y += gridSize) {
+                for (let x = 0; x < video.width; x += gridSize) {
+
+                    // Get pixel index
+                    const pixelIndex = (x + y * video.width) * 4;
+
+                    // Extract RGB values
+                    const r = video.pixels[pixelIndex];
+                    const g = video.pixels[pixelIndex + 1];
+                    const b = video.pixels[pixelIndex + 2];
+
+                    // Calculate brightness (grayscale conversion)
+                    const brightness = (r + g + b) / 3;
+
+                    // Calculate screen position
+                    const screenX = map(x, 0, video.width, offsetX, offsetX + displayWidth);
+                    const screenY = map(y, 0, video.height, offsetY, offsetY + displayHeight);
+
+                    // Apply sensitivity curve to brightness
+                    // Higher sensitivity = more dramatic size differences
+                    const normalizedBrightness = brightness / 255;
+                    const sensitivityPower = map(brightnessSensitivity, 3, 6, 1.0, 3.0);
+                    const adjustedBrightness = pow(normalizedBrightness, sensitivityPower);
+
+                    // Map brightness to size scale
+                    // Brighter = Bigger size
+                    const brightnessScale = map(adjustedBrightness, 0, 1, 0.3, 2.5);
+
+                    // Calculate final scales
+                    const finalScaleX = scaleXValue * brightnessScale;
+                    const finalScaleY = scaleYValue * brightnessScale;
+
+                    // Calculate bounding box for this symbol
+                    const symbolWidth = fontSize * finalScaleX;
+                    const symbolHeight = fontSize * finalScaleY;
+
+                    const bounds = {
+                        x: screenX - symbolWidth / 2,
+                        y: screenY - symbolHeight / 2,
+                        width: symbolWidth,
+                        height: symbolHeight,
+                        centerX: screenX,
+                        centerY: screenY
+                    };
+
+                    // Check if this symbol overlaps with any previously drawn symbols
+                    let overlaps = false;
+                    for (let drawn of drawnSymbols) {
+                        if (checkOverlap(bounds, drawn)) {
+                            overlaps = true;
+                            break;
+                        }
+                    }
+
+                    // Only draw if no overlap
+                    if (!overlaps) {
+                        push();
+                        translate(screenX, screenY);
+                        scale(finalScaleX, finalScaleY);
+                        text(customSymbol, 0, 0);
+                        pop();
+
+                        // Add to drawn symbols list
+                        drawnSymbols.push(bounds);
+                    }
+                }
+            }
+
+            // Update status
+            updateStatus();
+        }
+
+        // Check if two bounding boxes overlap
+        function checkOverlap(rect1, rect2) {
+            return !(rect1.x + rect1.width < rect2.x ||
+                     rect2.x + rect2.width < rect1.x ||
+                     rect1.y + rect1.height < rect2.y ||
+                     rect2.y + rect2.height < rect1.y);
+        }
+
+        function drawWelcomeScreen() {
+            push();
+            fill(symbolColor);
+            textAlign(CENTER, CENTER);
+            textSize(32);
+            text('VIDEO TO ASCII', width / 2, height / 2 - 30);
+            textSize(14);
+            fill(100);
+            text('Upload a video file to begin', width / 2, height / 2 + 20);
+            pop();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('video/')) {
+                const url = URL.createObjectURL(file);
+                video.elt.src = url;
+                video.elt.load();
+                document.getElementById('status').textContent = 'Loading video...';
+            } else {
+                document.getElementById('status').textContent = 'Please select a valid video file';
+            }
+        }
+
+        function videoReady() {
+            videoLoaded = true;
+            video.play();
+            document.getElementById('status').textContent = 'Video loaded successfully';
+        }
+
+        function setupControls() {
+            // Grid Size
+            const gridSlider = document.getElementById('gridSize');
+            const gridValue = document.getElementById('gridValue');
+            gridSlider.addEventListener('input', (e) => {
+                gridSize = parseInt(e.target.value);
+                gridValue.textContent = gridSize;
+            });
+
+            // Brightness Sensitivity
+            const sensitivitySlider = document.getElementById('sensitivity');
+            const sensitivityValue = document.getElementById('sensitivityValue');
+            sensitivitySlider.addEventListener('input', (e) => {
+                brightnessSensitivity = parseInt(e.target.value);
+                sensitivityValue.textContent = brightnessSensitivity;
+            });
+
+            // Scale X
+            const scaleXSlider = document.getElementById('scaleX');
+            const scaleXDisplay = document.getElementById('scaleXValue');
+            scaleXSlider.addEventListener('input', (e) => {
+                scaleXValue = parseFloat(e.target.value);
+                scaleXDisplay.textContent = scaleXValue.toFixed(1);
+            });
+
+            // Scale Y
+            const scaleYSlider = document.getElementById('scaleY');
+            const scaleYDisplay = document.getElementById('scaleYValue');
+            scaleYSlider.addEventListener('input', (e) => {
+                scaleYValue = parseFloat(e.target.value);
+                scaleYDisplay.textContent = scaleYValue.toFixed(1);
+            });
+
+            // Symbol Color
+            const symbolColorPicker = document.getElementById('symbolColor');
+            symbolColorPicker.addEventListener('input', (e) => {
+                symbolColor = color(e.target.value);
+            });
+
+            // Background Color
+            const bgColorPicker = document.getElementById('bgColor');
+            bgColorPicker.addEventListener('input', (e) => {
+                backgroundColor = color(e.target.value);
+            });
+
+            // Custom Symbol
+            const customSymbolInput = document.getElementById('customSymbol');
+            customSymbolInput.addEventListener('input', (e) => {
+                const value = e.target.value;
+                if (value.length > 0) {
+                    customSymbol = value.charAt(value.length - 1);
+                    e.target.value = customSymbol;
+                } else {
+                    customSymbol = '$';
+                    e.target.value = '$';
+                }
+            });
+        }
+
+        function updateStatus() {
+            if (videoLoaded && video) {
+                const currentTime = nf(video.time(), 1, 1);
+                const duration = nf(video.duration(), 1, 1);
+                document.getElementById('status').textContent = `Playing: ${currentTime}s / ${duration}s`;
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+</html>
